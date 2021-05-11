@@ -414,6 +414,46 @@ class VCR_QAR_Processor(DataProcessor):
                 examples.append(InputInstance(guid=guid, text_a=text_a, text_b=choices, label=label, score=score, img_key=img_key, q_id=q_id))
         return examples
 
+class OKVQAProcessor(DataProcessor):
+    """ Processor for the GQA data set. """
+
+    def get_train_examples(self, data_dir, file_name='train2014_exampless.json'):
+        """ See base class."""
+
+        lines = json.load(open(os.path.join(data_dir, file_name)))['annotaions']
+        return self._create_examples(lines, "train")
+
+    def get_dev_examples(self, data_dir, file_name='val2014_examples.json'):
+        """ See base class."""
+
+        lines = json.load(open(os.path.join(data_dir, file_name)))
+        return self._create_examples(lines, "dev")
+
+    def get_test_examples(self, data_dir, file_name='val2014_examples.json'):
+        """ See base class."""
+
+        lines = json.load(open(os.path.join(data_dir, file_name)))
+        return self._create_examples(lines, "test")
+
+    def get_ans2label(self, data_dir, label_file='ans2label.pkl'):
+        """ See base class."""
+
+        return cPickle.load(open(os.path.join(data_dir, label_file), 'rb'))
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = line['question_id']
+            text_a = line['question']
+            text_b = # None
+            label = None if set_type.startswith('test') else line['label']
+            score = 0
+            img_key = line['image_id']
+            q_id = int(line['q_id']) if set_type.startswith('test') else 0
+            examples.append(InputInstance(guid=guid, text_a=text_a, text_b=text_b, label=label, score=score, img_key=img_key, q_id=q_id))
+        return examples
 
 def convert_examples_to_features_vqa(examples, img_feats, label_list, max_img_seq_length, max_seq_length,
                                  tokenizer, output_mode,
@@ -572,6 +612,7 @@ processors = {
     "vcr_q_a": VCR_Q_A_Processor,
     "vcr_qa_r": VCR_QA_R_Processor,
     "vcr_qar": VCR_QAR_Processor,
+    "okvqa": OKVQAProcessor
 }
 
 output_modes = {
@@ -582,6 +623,7 @@ output_modes = {
     "vcr_q_a": "classification",
     "vcr_qa_r": "classification",
     "vcr_qar": "classification",
+    "okvqa": "classification"
 }
 
 GLUE_TASKS_NUM_LABELS = {
@@ -592,4 +634,5 @@ GLUE_TASKS_NUM_LABELS = {
     "vcr_q_a": 2,
     "vcr_qa_r": 2,
     "vcr_qar": 2,
+    "okvqa": 4215
 }
