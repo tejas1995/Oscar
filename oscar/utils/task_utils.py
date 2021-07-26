@@ -123,7 +123,7 @@ class VQATextProcessor(DataProcessor):
             label = None if set_type.startswith('test') else line['an']
             score = None if set_type.startswith('test') else line['s']
             img_key = line['img_id']
-            q_id = int(line['q_id']) if set_type.startswith('test') else 0
+            q_id = int(line['q_id']) if set_type.startswith('test') else i
             examples.append(InputInstance(guid=guid, text_a=text_a, text_b=text_b, label=label, score=score, img_key=img_key, q_id=q_id))
         return examples
 
@@ -265,8 +265,8 @@ class NLVRProcessor(DataProcessor):
             text_b = line['o'] if use_label_seq else None
             label = line['label'] #None if set_type.startswith('test') else line['label']
             score = 0
-            img_key = line['img_id'] #[line['img_left'], line['img_left']]
-            q_id = 0 #int(line['q_id']) if set_type.startswith('test') else 0
+            img_key = [line['img_left'], line['img_right']]
+            q_id = i #int(line['q_id']) if set_type.startswith('test') else 0
             examples.append(InputInstance(guid=guid, text_a=text_a, text_b=text_b, label=label, score=score, img_key=img_key, q_id=q_id))
         return examples
 
@@ -417,17 +417,21 @@ class VCR_QAR_Processor(DataProcessor):
 class OKVQAProcessor(DataProcessor):
     """ Processor for the GQA data set. """
 
-    def get_train_examples(self, data_dir, file_name='train2014_exampless.json'):
+    def get_train_examples(self, data_dir, file_name='train2014_qla.json'):
         """ See base class."""
 
-        lines = json.load(open(os.path.join(data_dir, file_name)))['annotaions']
+        lines = json.load(open(os.path.join(data_dir, file_name)))
         return self._create_examples(lines, "train")
 
-    def get_dev_examples(self, data_dir, file_name='val2014_examples.json'):
+        #return self._create_examples(self._read_tsv(os.path.join(data_dir, "train2014_qla.tsv")), "train")
+
+    def get_dev_examples(self, data_dir, file_name='val2014_qla.json'):
         """ See base class."""
 
         lines = json.load(open(os.path.join(data_dir, file_name)))
         return self._create_examples(lines, "dev")
+
+        #return self._create_examples(self._read_tsv(os.path.join(data_dir, "val2014_qla.tsv")), "dev")
 
     def get_test_examples(self, data_dir, file_name='val2014_examples.json'):
         """ See base class."""
@@ -435,23 +439,27 @@ class OKVQAProcessor(DataProcessor):
         lines = json.load(open(os.path.join(data_dir, file_name)))
         return self._create_examples(lines, "test")
 
-    def get_ans2label(self, data_dir, label_file='ans2label.pkl'):
+    def get_labels(self, label_file):
         """ See base class."""
 
-        return cPickle.load(open(os.path.join(data_dir, label_file), 'rb'))
+        ans2label = cPickle.load(open(label_file, 'rb'))
+        return list(ans2label.values())
+        #return ["entailment", "not_entailment"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
 
         examples = []
         for (i, line) in enumerate(lines):
-            guid = line['question_id']
-            text_a = line['question']
-            text_b = # None
-            label = None if set_type.startswith('test') else line['label']
-            score = 0
-            img_key = line['image_id']
-            q_id = int(line['q_id']) if set_type.startswith('test') else 0
+            if set_type!='test' and len(line['an']) == 0: continue
+
+            guid = "%s-%s" % (set_type, str(i))
+            text_a = line['q']
+            text_b = ''#line['o'].replace(';', ' ').strip() #line['o']
+            label = None if set_type.startswith('test') else line['an']
+            score = None if set_type.startswith('test') else line['s']
+            img_key = line['img_id']
+            q_id = int(line['q_id']) if set_type.startswith('test') else i
             examples.append(InputInstance(guid=guid, text_a=text_a, text_b=text_b, label=label, score=score, img_key=img_key, q_id=q_id))
         return examples
 
@@ -634,5 +642,5 @@ GLUE_TASKS_NUM_LABELS = {
     "vcr_q_a": 2,
     "vcr_qa_r": 2,
     "vcr_qar": 2,
-    "okvqa": 4215
+    "okvqa": 11509
 }
